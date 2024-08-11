@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useState, useRef, useEffect } from 'react'
 
 export default function Home() {
@@ -13,56 +13,50 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-
   const sendMessage = async () => {
     if (!message.trim() || isLoading) return;
-    setIsLoading(true)  // Don't send empty messages
+    setIsLoading(true);
   
-    setMessage('')
     setMessages((messages) => [
       ...messages,
       { role: 'user', content: message },
       { role: 'assistant', content: '' },
-    ])
+    ]);
   
+    setMessage('');
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([...messages, { role: 'user', content: message }]),
-      })
+        body: JSON.stringify({ messages: [...messages, { role: 'user', content: message }] }),
+      });
   
       if (!response.ok) {
-        throw new Error('Network response was not ok')
+        throw new Error('Network response was not ok');
       }
   
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
+      const data = await response.json();
+      const generatedText = data.response.candidates[0].content.parts[0].text;
   
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const text = decoder.decode(value, { stream: true })
-        setMessages((messages) => {
-          let lastMessage = messages[messages.length - 1]
-          let otherMessages = messages.slice(0, messages.length - 1)
-          return [
-            ...otherMessages,
-            { ...lastMessage, content: lastMessage.content + text },
-          ]
-        })
-      }
+      setMessages((messages) => {
+        let lastMessage = messages[messages.length - 1];
+        let otherMessages = messages.slice(0, messages.length - 1);
+        return [
+          ...otherMessages,
+          { ...lastMessage, content: generatedText },
+        ];
+      });
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
       setMessages((messages) => [
         ...messages,
         { role: 'assistant', content: "I'm sorry, but I encountered an error. Please try again later." },
-      ])
+      ]);
     }
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  }  
 
   const handleKeyPress = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -82,7 +76,9 @@ export default function Home() {
   }, [messages])
 
   return (
+   
     <Box
+
       width="100vw"
       height="100vh"
       display="flex"
@@ -90,6 +86,9 @@ export default function Home() {
       justifyContent="center"
       alignItems="center"
     >
+      {/* <Typography variant='h1'> 
+    
+      </Typography> */}
       <Stack
         direction={'column'}
         width="500px"
@@ -117,7 +116,7 @@ export default function Home() {
                 bgcolor={
                   message.role === 'assistant'
                     ? 'black'
-                    : 'secondary.main'
+                    : 'grey'
                 }
                 color="white"
                 borderRadius={16}
@@ -130,33 +129,32 @@ export default function Home() {
           <div ref={messagesEndRef} />
         </Stack>
         <Stack direction={'row'} spacing={2}>
-        <TextField
-          label="Message"
-          fullWidth
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '&.Mui-focused fieldset': {
-                borderColor: 'red',
+          <TextField
+            label="Message"
+            fullWidth
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
               },
-            },
-            '& .MuiInputLabel-root.Mui-focused': {
-              color: 'red',
-            },
-          }}
-        />
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: 'black',
+              },
+            }}
+          />
           <Button 
-          variant="contained" 
-          onClick={sendMessage}
-          disabled={isLoading}
-          sx={{ bgcolor: 'black', '&:hover': { bgcolor: '#333' } }}  // Added this line
-        >
-          {isLoading ? 'Sending...' : 'Send'}
-        </Button>
+            variant="contained" 
+            onClick={sendMessage}
+            disabled={isLoading}
+            sx={{ bgcolor: 'black', '&:hover': { bgcolor: '#333' } }}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </Button>
         </Stack>
-        
       </Stack>
     </Box>
   )
