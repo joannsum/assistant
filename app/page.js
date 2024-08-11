@@ -130,7 +130,7 @@ export default function Home() {
                 bgcolor={
                   message.role === 'assistant'
                     ? 'black'
-                    : 'secondary.main'
+                    : 'grey'
                 }
                 color="white"
                 borderRadius={16}
@@ -159,11 +159,11 @@ export default function Home() {
           sx={{
             '& .MuiOutlinedInput-root': {
               '&.Mui-focused fieldset': {
-                borderColor: 'red',
+                borderColor: 'black',
               },
             },
             '& .MuiInputLabel-root.Mui-focused': {
-              color: 'red',
+              color: 'black',
             },
           }}
         />
