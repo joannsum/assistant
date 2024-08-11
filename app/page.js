@@ -2,6 +2,8 @@
 
 import { Box, Button, Stack, TextField, CircularProgress } from '@mui/material'
 import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 export default function Home() {
   const [messages, setMessages] = useState([
@@ -133,11 +135,14 @@ export default function Home() {
                 color="white"
                 borderRadius={16}
                 p={3}
+                maxWidth="80%"
               >
                 {message.isLoading ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : (
-                  message.content
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.content}
+                  </ReactMarkdown>
                 )}
               </Box>
             </Box>
