@@ -9,7 +9,7 @@ export default function Home() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: "Hi! I'm the support assistant. How can I help you today?",
+      content: "Hi! I'm the movie assistant. How can I help you today?",
     },
   ])
   const [message, setMessage] = useState('')
@@ -19,12 +19,9 @@ export default function Home() {
     if (!message.trim() || isLoading) return;
     setIsLoading(true)
 
+    const newMessage = { role: 'user', content: message }
     setMessage('')
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { role: 'user', content: message },
-      { role: 'assistant', content: '', isLoading: true },
-    ])
+    setMessages(prevMessages => [...prevMessages, newMessage])
 
     try {
       const response = await fetch('/api/chat', {
@@ -32,48 +29,29 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([...messages, { role: 'user', content: message }]),
+        body: JSON.stringify({ messages: [...messages, newMessage] }),
       })
 
       if (!response.ok) {
-        throw new Error('Network response was not ok')
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-
-      let fullResponse = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const text = decoder.decode(value, { stream: true })
-        fullResponse += text
-        setMessages((prevMessages) => {
-          const newMessages = [...prevMessages]
-          newMessages[newMessages.length - 1] = {
-            ...newMessages[newMessages.length - 1],
-            content: fullResponse,
-          }
-          return newMessages
-        })
+      const data = await response.json()
+      if (data.error) {
+        throw new Error(data.error)
       }
-
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { role: 'assistant', content: data.content },
+      ])
     } catch (error) {
       console.error('Error:', error)
-      setMessages((prevMessages) => [
-        ...prevMessages.slice(0, -1),
-        { role: 'assistant', content: "I'm sorry, but I encountered an error. Please try again later." },
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { role: 'assistant', content: `Error: ${error.message}. Please try again later.` },
       ])
     } finally {
       setIsLoading(false)
-      setMessages((prevMessages) => {
-        const newMessages = [...prevMessages]
-        newMessages[newMessages.length - 1] = {
-          ...newMessages[newMessages.length - 1],
-          isLoading: false,
-        }
-        return newMessages
-      })
     }
   }
 
@@ -137,44 +115,40 @@ export default function Home() {
                 p={3}
                 maxWidth="80%"
               >
-                {message.isLoading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {message.content}
-                  </ReactMarkdown>
-                )}
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
               </Box>
             </Box>
           ))}
           <div ref={messagesEndRef} />
         </Stack>
         <Stack direction={'row'} spacing={2}>
-        <TextField
-          label="Message"
-          fullWidth
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '&.Mui-focused fieldset': {
-                borderColor: 'black',
+          <TextField
+            label="Message"
+            fullWidth
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '&.Mui-focused fieldset': {
+                  borderColor: 'black',
+                },
               },
-            },
-            '& .MuiInputLabel-root.Mui-focused': {
-              color: 'black',
-            },
-          }}
-        />
+              '& .MuiInputLabel-root.Mui-focused': {
+                color: 'black',
+              },
+            }}
+          />
           <Button 
-          variant="contained" 
-          onClick={sendMessage}
-          disabled={isLoading}
-          sx={{ bgcolor: 'black', '&:hover': { bgcolor: '#333' } }}
-        >
-          {isLoading ? 'Sending...' : 'Send'}
-        </Button>
+            variant="contained" 
+            onClick={sendMessage}
+            disabled={isLoading}
+            sx={{ bgcolor: 'black', '&:hover': { bgcolor: '#333' } }}
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </Button>
         </Stack>
       </Stack>
     </Box>
